@@ -1,7 +1,5 @@
 package redis.clients.jedis;
 
-import java.io.IOException;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -11,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 
 import redis.clients.jedis.BinaryClient.LIST_POSITION;
+import redis.clients.jedis.exceptions.JedisConnectionException;
 import redis.clients.jedis.exceptions.JedisException;
 import redis.clients.util.JedisByteHashMap;
 import redis.clients.util.SafeEncoder;
@@ -1655,11 +1654,11 @@ public class BinaryJedis implements BinaryJedisCommands {
         }
     }
 
-    public void connect() throws UnknownHostException, IOException {
+    public void connect() {
         client.connect();
     }
 
-    public void disconnect() throws IOException {
+    public void disconnect() {
         client.disconnect();
     }
 
