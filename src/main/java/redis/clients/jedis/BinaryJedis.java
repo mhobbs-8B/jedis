@@ -180,7 +180,7 @@ public class BinaryJedis implements BinaryJedisCommands {
     public Set<byte[]> keys(final byte[] pattern) {
         checkIsInMulti();
         client.keys(pattern);
-        final HashSet<byte[]> keySet = new LinkedHashSet<byte[]>(client
+        final HashSet<byte[]> keySet = new HashSet<byte[]>(client
                 .getBinaryMultiBulkReply());
         return keySet;
     }
@@ -833,7 +833,7 @@ public class BinaryJedis implements BinaryJedisCommands {
         checkIsInMulti();
         client.hkeys(key);
         final List<byte[]> lresult = client.getBinaryMultiBulkReply();
-        return new LinkedHashSet<byte[]>(lresult);
+        return new HashSet<byte[]>(lresult);
     }
 
     /**
@@ -1184,7 +1184,7 @@ public class BinaryJedis implements BinaryJedisCommands {
         checkIsInMulti();
         client.smembers(key);
         final List<byte[]> members = client.getBinaryMultiBulkReply();
-        return new LinkedHashSet<byte[]>(members);
+        return new HashSet<byte[]>(members);
     }
 
     /**
@@ -1308,7 +1308,7 @@ public class BinaryJedis implements BinaryJedisCommands {
         checkIsInMulti();
         client.sinter(keys);
         final List<byte[]> members = client.getBinaryMultiBulkReply();
-        return new LinkedHashSet<byte[]>(members);
+        return new HashSet<byte[]>(members);
     }
 
     /**
@@ -1348,7 +1348,7 @@ public class BinaryJedis implements BinaryJedisCommands {
         checkIsInMulti();
         client.sunion(keys);
         final List<byte[]> members = client.getBinaryMultiBulkReply();
-        return new LinkedHashSet<byte[]>(members);
+        return new HashSet<byte[]>(members);
     }
 
     /**
@@ -1396,7 +1396,7 @@ public class BinaryJedis implements BinaryJedisCommands {
         checkIsInMulti();
         client.sdiff(keys);
         final List<byte[]> members = client.getBinaryMultiBulkReply();
-        return new LinkedHashSet<byte[]>(members);
+        return new HashSet<byte[]>(members);
     }
 
     /**
@@ -1629,19 +1629,18 @@ public class BinaryJedis implements BinaryJedisCommands {
 
     public Transaction multi() {
         client.multi();
-        client.getStatusCodeReply();
         return new Transaction(client);
     }
 
     public List<Object> multi(final TransactionBlock jedisTransaction) {
         List<Object> results = null;
+        jedisTransaction.setClient(client);
         try {
-            jedisTransaction.setClient(client);
-            multi();
+            client.multi();
             jedisTransaction.execute();
             results = jedisTransaction.exec();
         } catch (Exception ex) {
-            client.discard();
+            jedisTransaction.discard();
         }
         return results;
     }
@@ -2923,6 +2922,16 @@ public class BinaryJedis implements BinaryJedisCommands {
     public Long getbit(byte[] key, long offset) {
         client.getbit(key, offset);
         return client.getIntegerReply();
+    }
+
+    public long setrange(byte[] key, long offset, byte[] value) {
+        client.setrange(key, offset, value);
+        return client.getIntegerReply();
+    }
+
+    public String getrange(byte[] key, long startOffset, long endOffset) {
+        client.getrange(key, startOffset, endOffset);
+        return client.getBulkReply();
     }
 
     public Long publish(byte[] channel, byte[] message) {

@@ -1182,7 +1182,7 @@ public class Jedis extends BinaryJedis implements JedisCommands {
         runChecks();
         client.smembers(key);
         final List<String> members = client.getMultiBulkReply();
-        return new LinkedHashSet<String>(members);
+        return new HashSet<String>(members);
     }
 
     /**
@@ -1306,7 +1306,7 @@ public class Jedis extends BinaryJedis implements JedisCommands {
         runChecks();
         client.sinter(keys);
         final List<String> members = client.getMultiBulkReply();
-        return new LinkedHashSet<String>(members);
+        return new HashSet<String>(members);
     }
 
     /**
@@ -1346,7 +1346,7 @@ public class Jedis extends BinaryJedis implements JedisCommands {
         runChecks();
         client.sunion(keys);
         final List<String> members = client.getMultiBulkReply();
-        return new LinkedHashSet<String>(members);
+        return new HashSet<String>(members);
     }
 
     /**
@@ -1394,7 +1394,7 @@ public class Jedis extends BinaryJedis implements JedisCommands {
         runChecks();
         client.sdiff(keys);
         final List<String> members = client.getMultiBulkReply();
-        return new LinkedHashSet<String>(members);
+        return new HashSet<String>(members);
     }
 
     /**
@@ -1623,25 +1623,6 @@ public class Jedis extends BinaryJedis implements JedisCommands {
         client.zscore(key, member);
         final String score = client.getBulkReply();
         return (score != null ? new Double(score) : null);
-    }
-
-    public Transaction multi() {
-        client.multi();
-        client.getStatusCodeReply();
-        return new Transaction(client);
-    }
-
-    public List<Object> multi(TransactionBlock jedisTransaction) {
-        List<Object> results = null;
-        try {
-            jedisTransaction.setClient(client);
-            multi();
-            jedisTransaction.execute();
-            results = jedisTransaction.exec();
-        } catch (Exception ex) {
-            client.discard();
-        }
-        return results;
     }
 
     private void runChecks() {
@@ -2600,9 +2581,9 @@ public class Jedis extends BinaryJedis implements JedisCommands {
      * @param value
      * @return
      */
-    public Long setbit(String key, long offset, String value) {
+    public boolean setbit(String key, long offset, boolean value) {
         client.setbit(key, offset, value);
-        return client.getIntegerReply();
+        return client.getIntegerReply() == 1;
     }
 
     /**
@@ -2612,8 +2593,18 @@ public class Jedis extends BinaryJedis implements JedisCommands {
      * @param offset
      * @return
      */
-    public Long getbit(String key, long offset) {
+    public boolean getbit(String key, long offset) {
         client.getbit(key, offset);
+        return client.getIntegerReply() == 1;
+    }
+
+    public long setrange(String key, long offset, String value) {
+        client.setrange(key, offset, value);
         return client.getIntegerReply();
+    }
+
+    public String getrange(String key, long startOffset, long endOffset) {
+        client.getrange(key, startOffset, endOffset);
+        return client.getBulkReply();
     }
 }

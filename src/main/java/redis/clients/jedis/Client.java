@@ -1,5 +1,7 @@
 package redis.clients.jedis;
 
+import static redis.clients.jedis.Protocol.toByteArray;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -507,12 +509,20 @@ public class Client extends BinaryClient implements Commands {
                 timeout);
     }
 
-    public void setbit(final String key, final long offset, final String value) {
-        setbit(SafeEncoder.encode(key), offset, SafeEncoder.encode(value));
+    public void setbit(final String key, final long offset, final boolean value) {
+        setbit(SafeEncoder.encode(key), offset, toByteArray(value ? 0 : 1));
     }
 
     public void getbit(String key, long offset) {
         getbit(SafeEncoder.encode(key), offset);
+    }
+
+    public void setrange(String key, long offset, String value) {
+        setrange(SafeEncoder.encode(key), offset, SafeEncoder.encode(value));
+    }
+
+    public void getrange(String key, long startOffset, long endOffset) {
+        getrange(SafeEncoder.encode(key), startOffset, endOffset);
     }
 
     public void publish(final String channel, final String message) {
@@ -550,5 +560,4 @@ public class Client extends BinaryClient implements Commands {
         }
         subscribe(cs);
     }
-
 }
