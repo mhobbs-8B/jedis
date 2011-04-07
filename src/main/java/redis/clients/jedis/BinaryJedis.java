@@ -9,13 +9,13 @@ import java.util.Map;
 import java.util.Set;
 
 import redis.clients.jedis.BinaryClient.LIST_POSITION;
+import redis.clients.jedis.exceptions.JedisDataException;
 import redis.clients.jedis.exceptions.JedisException;
 import redis.clients.util.JedisByteHashMap;
 import redis.clients.util.SafeEncoder;
 
 public class BinaryJedis implements BinaryJedisCommands {
     protected Client client = null;
-    protected String password = null;
 
     public BinaryJedis(final String host) {
         client = new Client(host);
@@ -33,7 +33,7 @@ public class BinaryJedis implements BinaryJedisCommands {
     public BinaryJedis(final JedisShardInfo shardInfo) {
         client = new Client(shardInfo.getHost(), shardInfo.getPort());
         client.setTimeout(shardInfo.getTimeout());
-        this.password = shardInfo.getPassword();
+        client.setPassword(shardInfo.getPassword());
     }
 
     public String ping() {
@@ -1647,7 +1647,7 @@ public class BinaryJedis implements BinaryJedisCommands {
 
     protected void checkIsInMulti() {
         if (client.isInMulti()) {
-            throw new JedisException(
+            throw new JedisDataException(
                     "Cannot use Jedis when in Multi. Please use JedisTransaction instead.");
         }
     }
@@ -2017,11 +2017,13 @@ public class BinaryJedis implements BinaryJedisCommands {
     public List<Object> pipelined(final PipelineBlock jedisPipeline) {
         jedisPipeline.setClient(client);
         jedisPipeline.execute();
-        return client.getAll();
+        return jedisPipeline.sync();
     }
 
     public Pipeline pipelined() {
-        return new Pipeline(client);
+        Pipeline pipeline = new Pipeline();
+        pipeline.setClient(client);
+        return pipeline;
     }
 
     public void subscribe(final JedisPubSub jedisPubSub,
@@ -2321,6 +2323,44 @@ public class BinaryJedis implements BinaryJedisCommands {
             set.add(new Tuple(iterator.next(), Double.valueOf(SafeEncoder
                     .encode(iterator.next()))));
         }
+        return set;
+    }
+
+    public Set<byte[]> zrevrangeByScore(final byte[] key, final double max,
+            final double min) {
+        checkIsInMulti();
+        client.zrevrangeByScore(key, max, min);
+        return new LinkedHashSet<byte[]>(client.getBinaryMultiBulkReply());
+    }
+
+    public Set<byte[]> zrevrangeByScore(final byte[] key, final byte[] max,
+            final byte[] min) {
+        checkIsInMulti();
+        client.zrevrangeByScore(key, max, min);
+        return new LinkedHashSet<byte[]>(client.getBinaryMultiBulkReply());
+    }
+
+    public Set<byte[]> zrevrangeByScore(final byte[] key, final double max,
+            final double min, final int offset, final int count) {
+        checkIsInMulti();
+        client.zrevrangeByScore(key, max, min, offset, count);
+        return new LinkedHashSet<byte[]>(client.getBinaryMultiBulkReply());
+    }
+
+    public Set<Tuple> zrevrangeByScoreWithScores(final byte[] key,
+            final double max, final double min) {
+        checkIsInMulti();
+        client.zrevrangeByScoreWithScores(key, max, min);
+        Set<Tuple> set = getBinaryTupledSet();
+        return set;
+    }
+
+    public Set<Tuple> zrevrangeByScoreWithScores(final byte[] key,
+            final double max, final double min, final int offset,
+            final int count) {
+        checkIsInMulti();
+        client.zrevrangeByScoreWithScores(key, max, min, offset, count);
+        Set<Tuple> set = getBinaryTupledSet();
         return set;
     }
 
@@ -2896,7 +2936,10 @@ public class BinaryJedis implements BinaryJedisCommands {
      */
     public byte[] brpoplpush(byte[] source, byte[] destination, int timeout) {
         client.brpoplpush(source, destination, timeout);
-        return client.getBinaryBulkReply();
+        client.setTimeoutInfinite();
+        byte[] reply = client.getBinaryBulkReply();
+        client.rollbackTimeout();
+        return reply;
     }
 
     /**
